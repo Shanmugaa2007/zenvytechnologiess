@@ -98,7 +98,7 @@ passport.deserializeUser(async (data, done) => {
     passport.use(new GitHubStrategy({
     clientID: "Ov23li2e9jjP6W7zNGr6",
     clientSecret: "95ab1abfb181c8d07080428c5f283afa08bed559",
-    callbackURL: "http://127.0.0.1:5000/auth/github/callback"
+    callbackURL: "https://zenvytechnologiess.onrender.com/auth/github/callback"
   },
   async (accessToken, refreshToken, profile, done) => {
       try {
@@ -130,7 +130,7 @@ passport.use(
     {
       clientID: "1058432680151-ptrn3h0is930j0063k77rlula7q6nu5m.apps.googleusercontent.com",
     clientSecret: "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",
-    callbackURL: "http://localhost:5000/auth/google/callback"
+    callbackURL: "https://zenvytechnologiess.onrender.com/auth/google/callback"
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -160,7 +160,7 @@ passport.use(
     {
       consumerKey: "UPWxto0DV3fqsTUYUT3O4BSOV",
       consumerSecret: "WIdueIJwjYh1820OzRkQx1VXcrbzpiui430Ug2Yy4zKVC0xmpr",
-      callbackURL: "http://localhost:5000/auth/twitter/callback",
+      callbackURL: "https://zenvytechnologiess.onrender.com/auth/twitter/callback",
       includeEmail: true
     },
     async (token, tokenSecret, profile, done) => {
