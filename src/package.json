@@ -1,0 +1,46 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.mjs",
+  "types": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon src/index.mjs",
+    "dev": "node"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^1.41.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.3.1",
+    "mongodb-memory-server": "^11.0.1",
+    "mongoose": "^9.1.2",
+    "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
+    "nodemailer": "^7.0.12",
+    "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-local": "^1.0.0",
+    "passport-twitter": "^1.0.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shanmugaa2007/zenvytechnologiess.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/Shanmugaa2007/zenvytechnologiess/issues"
+  },
+  "homepage": "https://github.com/Shanmugaa2007/zenvytechnologiess#readme"
+}
