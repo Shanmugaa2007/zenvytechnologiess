@@ -3,7 +3,7 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import { Service } from "./MongoDB Schema/service.mjs";
+import { Service } from "./MongoDB_Schema/service.mjs";
 import { UserRegistration } from "./MongoDB Schema/userRegistration.mjs";
 import { StudentRegistration } from "./MongoDB Schema/StudentRegistration.mjs";
 import { Feedback } from "./MongoDB Schema/feedback.mjs";
@@ -250,8 +250,11 @@ app.post("/mail", async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error("MAIL ERROR:", err);
-    res.status(500).json({ success: false });
-  }
+  console.error("MAIL ERROR FULL:", err.message, err);
+  res.status(500).json({
+    success: false,
+    error: err.message
+  });
+}
 });
 
