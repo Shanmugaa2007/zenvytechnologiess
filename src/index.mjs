@@ -12,6 +12,7 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import nodemailer from "nodemailer";
+import SibApiV3Sdk from "sib-api-v3-sdk";
 import MongoStore from "connect-mongo";
 import dotenv from "dotenv";
 dotenv.config();
@@ -232,30 +233,29 @@ app.post("/mail", async (req, res) => {
       });
     }
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,          
-      port: Number(process.env.SMTP_PORT),  
-      secure: false,
-      auth: {
-        user: "apikey",                     
-        pass: process.env.SMTP_PASS,        
-      },
-    });
+    const client = SibApiV3Sdk.ApiClient.instance;
+    client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
 
-    await transporter.sendMail({
-      from: `"Zenvy Technologies" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER,          
-      replyTo: email,                       
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    const sendSmtpEmail = {
+      sender: {
+        name: "Zenvy Technologies",
+        email: process.env.EMAIL_USER,
+      },
+      to: [{ email: process.env.EMAIL_USER }], 
+      replyTo: { email, name },
       subject: `New Contact Message from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
-      html: `
+      htmlContent: `
         <h3>New Contact Message</h3>
         <p><b>Name:</b> ${name}</p>
         <p><b>Email:</b> ${email}</p>
         <p><b>Message:</b></p>
         <p>${message}</p>
       `,
-    });
+    };
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
 
     res.status(200).json({
       success: true,
@@ -263,7 +263,7 @@ app.post("/mail", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("MAIL ERROR FULL:", err);
+    console.error("BREVO MAIL ERROR FULL:", err);
 
     res.status(500).json({
       success: false,
