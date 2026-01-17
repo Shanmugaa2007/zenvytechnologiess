@@ -226,35 +226,51 @@ app.post("/mail", async (req, res) => {
     const { name, email, message } = req.body;
 
     if (!name || !email || !message) {
-      return res.status(400).json({ success: false, message: "All fields required" });
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
     }
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.SMTP_HOST,          
+      port: Number(process.env.SMTP_PORT),  
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: "apikey",                     
+        pass: process.env.SMTP_PASS,        
       },
     });
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
-      replyTo: email,
-      subject: `New message from ${name}`,
+      from: `"Zenvy Technologies" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_USER,          
+      replyTo: email,                       
+      subject: `New Contact Message from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
-      html: `<p><b>Name:</b> ${name}</p>
-             <p><b>Email:</b> ${email}</p>
-             <p><b>Message:</b> ${message}</p>`,
+      html: `
+        <h3>New Contact Message</h3>
+        <p><b>Name:</b> ${name}</p>
+        <p><b>Email:</b> ${email}</p>
+        <p><b>Message:</b></p>
+        <p>${message}</p>
+      `,
     });
 
-    res.json({ success: true });
+    res.status(200).json({
+      success: true,
+      message: "Mail sent successfully",
+    });
+
   } catch (err) {
-  console.error("MAIL ERROR FULL:", err.message, err);
-  res.status(500).json({
-    success: false,
-    error: err.message
-  });
-}
+    console.error("MAIL ERROR FULL:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Mail sending failed",
+      error: err.message,
+    });
+  }
 });
+
 
