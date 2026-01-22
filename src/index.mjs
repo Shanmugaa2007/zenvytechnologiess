@@ -3,6 +3,7 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import MongoStore from 'connect-mongo'
 import { Service } from "./MongoDB Schema/service.mjs";
 import { UserRegistration } from "./MongoDB Schema/userRegistration.mjs";
 import { StudentRegistration } from "./MongoDB Schema/StudentRegistration.mjs";
@@ -11,9 +12,7 @@ import { hashing, comparepassword } from "./hashpassword/passwordhashing.mjs";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import nodemailer from "nodemailer";
 import SibApiV3Sdk from "sib-api-v3-sdk";
-import MongoStore from "connect-mongo";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -39,13 +38,20 @@ app.use(
 
 app.use(
   session({
+    name: "zenvy.sid",
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-  secure: false,
-  sameSite: "lax",
-  },
+      httpOnly: true,
+      secure: true,        // HTTPS (Render uses HTTPS)
+      sameSite: "none",
+      maxAge: 1000 * 60 * 60 * 24 // 1 day
+    },
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      collectionName: "sessions"
+    })
   })
 );
 
