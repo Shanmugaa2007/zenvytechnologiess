@@ -282,7 +282,7 @@ app.post("/mail", async (req, res) => {
 
 app.get('/internships',async (req, res) => {
    try {
-    const data = await Internships.find().sort({ priority: 1 });   
+    const data = await Internships.find();   
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
