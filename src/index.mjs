@@ -8,6 +8,7 @@ import { Service } from "./MongoDB Schema/service.mjs";
 import { UserRegistration } from "./MongoDB Schema/userRegistration.mjs";
 import { StudentRegistration } from "./MongoDB Schema/StudentRegistration.mjs";
 import { Feedback } from "./MongoDB Schema/feedback.mjs";
+import { Internships } from "./MongoDB Schema/internship.mjs";
 import { hashing, comparepassword } from "./hashpassword/passwordhashing.mjs";
 import session from "express-session";
 import passport from "passport";
@@ -279,4 +280,12 @@ app.post("/mail", async (req, res) => {
   }
 });
 
+app.get('/internships',async (req, res) => {
+  try {
+    const Internships = await Internship.find();
+    res.json(Internships);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+})
 
