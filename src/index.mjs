@@ -281,9 +281,9 @@ app.post("/mail", async (req, res) => {
 });
 
 app.get('/internships',async (req, res) => {
-  try {
-    const Internships = await Internship.find();
-    res.json(Internships);
+   try {
+    const data = await Internships.find();   
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
