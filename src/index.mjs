@@ -282,10 +282,19 @@ app.post("/mail", async (req, res) => {
 
 app.get('/internships',async (req, res) => {
    try {
-    const data = await Internships.find();
+    const data = await Internships.find();   
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 })
 
+app.get("/internships/:id", async (req, res) => {
+  try {
+    const data = await Internships.findById(req.params.id);
+    if (!data) return res.status(404).json({ message: "Not found" });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
