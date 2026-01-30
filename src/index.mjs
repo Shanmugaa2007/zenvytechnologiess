@@ -317,21 +317,25 @@ app.post("/userprofile", upload.single("image"), async (req, res) => {
       folder: "Zenvy/users"
     });
 
-    const profileimage = new profileImage({
-      name: req.body.name,
-      image: result.secure_url,
-    });
+    const profileimage = await profileImage.findOneAndUpdate(
+      { name: req.user.name },
+      { name: req.user.name, image: result.secure_url },
+      { upsert: true, new: true }
+    );
 
-    await profileimage.save();
     res.status(201).json(profileimage);
-
   } catch (err) {
     res.status(500).json({ message: "Failed to save Profile Image" });
   }
-})
+});
 
 app.get("/userprofile", async (req, res) => {
-  const data = await profileImage.findOne({ name: req.user.name });
-  res.json(data);
+  try {
+    const data = await profileImage.findOne({ name: req.user.name });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch Profile Image" });
+  }
 });
+
 
