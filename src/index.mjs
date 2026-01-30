@@ -15,6 +15,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
+import { profileImage } from "./MongoDB Schema/profile.mjs";
 dotenv.config();
 
 
@@ -299,3 +300,13 @@ app.get("/internships/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post('/userprofile',async (req,res)=>{
+  try{
+    const profileimage = new profileImage(req.body);
+    await profileimage.save();
+    res.status(201).json(profileimage);
+  } catch {
+    res.status(500).json({ message: "Failed to save Profile Image" });
+  }
+  })
