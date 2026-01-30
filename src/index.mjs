@@ -331,7 +331,7 @@ app.post("/userprofile", upload.single("image"), async (req, res) => {
 })
 
 app.get("/userprofile", async (req, res) => {
-  const data = await profileImage.findOne({ name: "Shanmuga" });
+  const data = await profileImage.findOne({ name: req.user.username });
   res.json(data);
 });
 
