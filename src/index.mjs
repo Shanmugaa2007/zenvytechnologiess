@@ -66,12 +66,12 @@ const PORT = process.env.PORT || 5000;
 
 passport.use(
   new LocalStrategy(
-    { usernameField: "email", passwordField: "password" },
-    async (email, password, done) => {
+    { usernameField: "username", passwordField: "password" },
+    async (username, password, done) => {
       try {
-        let user = await UserRegistration.findOne({ email });
+        let user = await UserRegistration.findOne({ username });
         if (!user) {
-          user = await StudentRegistration.findOne({ email });
+          user = await StudentRegistration.findOne({ username });
         }
 
         if (!user) {
@@ -143,6 +143,7 @@ app.get("/me", (req, res) => {
   if (req.isAuthenticated()) {
     res.json({ authenticated: true, user: req.user });
   } else {
+    console.log(req.user)
     res.json({ authenticated: false });
   }
 });
@@ -277,24 +278,5 @@ app.post("/mail", async (req, res) => {
       message: "Mail sending failed",
       error: err.message,
     });
-  }
-});
-
-app.get('/internships',async (req, res) => {
-   try {
-    const data = await Internships.find();   
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-})
-
-app.get("/internships/:id", async (req, res) => {
-  try {
-    const data = await Internships.findById(req.params.id);
-    if (!data) return res.status(404).json({ message: "Not found" });
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 });
