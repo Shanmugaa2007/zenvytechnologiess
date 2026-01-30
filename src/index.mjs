@@ -16,6 +16,8 @@ import { Strategy as LocalStrategy } from "passport-local";
 import SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
 import { profileImage } from "./MongoDB Schema/profile.mjs";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
 dotenv.config();
 
 
@@ -63,6 +65,14 @@ app.use(passport.session());
 app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 5000;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const storage = multer.diskStorage({});
+const upload = multer({ storage });
 
 
 passport.use(
@@ -301,12 +311,19 @@ app.get("/internships/:id", async (req, res) => {
   }
 });
 
-app.post('/userprofile',async (req,res)=>{
-  try{
-    const profileimage = new profileImage(req.body);
+app.post("/userprofile", upload.single("image"), async (req, res) => {
+  try {
+    const result = await cloudinary.uploader.upload(req.file.path);
+
+    const profileimage = new profileImage({
+      name: req.body.name,
+      image: result.secure_url,
+    });
+
     await profileimage.save();
+
     res.status(201).json(profileimage);
-  } catch {
+  } catch (err) {
     res.status(500).json({ message: "Failed to save Profile Image" });
   }
-  })
+});
