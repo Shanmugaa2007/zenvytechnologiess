@@ -313,7 +313,9 @@ app.get("/internships/:id", async (req, res) => {
 
 app.post("/userprofile", upload.single("image"), async (req, res) => {
   try {
-    const result = await cloudinary.uploader.upload(req.file.path);
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "Zenvy/users"
+    });
 
     const profileimage = new profileImage({
       name: req.body.name,
@@ -321,8 +323,8 @@ app.post("/userprofile", upload.single("image"), async (req, res) => {
     });
 
     await profileimage.save();
-
     res.status(201).json(profileimage);
+
   } catch (err) {
     res.status(500).json({ message: "Failed to save Profile Image" });
   }
