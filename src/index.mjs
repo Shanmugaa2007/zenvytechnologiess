@@ -45,9 +45,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,        // HTTPS (Render uses HTTPS)
+      secure: true,        
       sameSite: "none",
-      maxAge: 1000 * 60 * 60 * 24 // 1 day
+      maxAge: 1000 * 60 * 60 * 24 
     },
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URI,
@@ -278,5 +278,24 @@ app.post("/mail", async (req, res) => {
       message: "Mail sending failed",
       error: err.message,
     });
+  }
+});
+
+app.get('/internships',async (req, res) => {
+   try {
+    const data = await Internships.find();   
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+})
+
+app.get("/internships/:id", async (req, res) => {
+  try {
+    const data = await Internships.findById(req.params.id);
+    if (!data) return res.status(404).json({ message: "Not found" });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
