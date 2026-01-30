@@ -328,4 +328,10 @@ app.post("/userprofile", upload.single("image"), async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to save Profile Image" });
   }
+})
+
+app.get("/userprofile", async (req, res) => {
+  const data = await profileImage.findOne({ name: "Shanmuga" });
+  res.json(data);
 });
+
