@@ -38,7 +38,11 @@ const StudentRegistrationSchema = new mongoose.Schema({
     yearofstudy:{
         type: mongoose.Schema.Types.String,
         required: true
-    }
+    },
+  createdAt: {
+    type: Date,
+    default: Date.now   
+  }
 
 })
 
