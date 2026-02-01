@@ -11,6 +11,10 @@ const UserRegistrationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.String,
         required: true
     },
+    username:{
+        type: mongoose.Schema.Types.String,
+        required: true
+    },
     email:{
         type: mongoose.Schema.Types.String
     },
