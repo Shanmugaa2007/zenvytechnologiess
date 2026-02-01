@@ -212,13 +212,28 @@ app.get("/logout", (req, res, next) => {
   req.logout(err => {
     if (err) return next(err);
     req.session.destroy(() => {
-      res.clearCookie("connect.sid");
+      res.clearCookie("zenvy.sid");
       res.json({ success: true });
     });
   });
 });
+app.get("/current-user", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ success: false, message: "Not logged in" });
+  }
 
+  const user = req.user;
 
+  res.json({
+    success: true,
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      fullname:user.name,
+    },
+  });
+});
 
 
 app.post("/feedback", async (req, res) => {
