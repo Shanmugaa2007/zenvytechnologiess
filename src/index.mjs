@@ -1,52 +1,44 @@
+//"kunb oqll qgpo nnkh"
+
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import MongoStore from "connect-mongo";
-import session from "express-session";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import dotenv from "dotenv";
-import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import SibApiV3Sdk from "sib-api-v3-sdk";
-
-// ✅ Schemas
+import MongoStore from 'connect-mongo'
 import { Service } from "./MongoDB Schema/service.mjs";
 import { UserRegistration } from "./MongoDB Schema/userRegistration.mjs";
 import { StudentRegistration } from "./MongoDB Schema/StudentRegistration.mjs";
 import { Feedback } from "./MongoDB Schema/feedback.mjs";
 import { Internships } from "./MongoDB Schema/internship.mjs";
-
-// ✅ Password helpers
 import { hashing, comparepassword } from "./hashpassword/passwordhashing.mjs";
-
+import session from "express-session";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import SibApiV3Sdk from "sib-api-v3-sdk";
+import dotenv from "dotenv";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
 dotenv.config();
+
 
 const app = express();
 
-// ✅ If hosting behind Render/NGINX etc.
 app.set("trust proxy", 1);
 
-// ✅ Body parsers
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// ✅ Environment
-const PORT = process.env.PORT || 5000;
-const isProd = process.env.NODE_ENV === "production";
-
-// ✅ CORS (credentials + origins)
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://zenvytechnologies.vercel.app",
+      "https://zenvytechnologies.vercel.app"
     ],
     credentials: true,
   })
 );
 
-// ✅ Session store in Mongo
+const isProd = process.env.NODE_ENV;
+
 app.use(
   session({
     name: "zenvy.sid",
@@ -55,47 +47,41 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URI,
-      collectionName: "sessions",
-      ttl: 60 * 60 * 24, // 1 day (seconds)
+      collectionName: "sessions"
     }),
     cookie: {
       httpOnly: true,
-      secure: isProd, // ✅ HTTPS only in prod
-      sameSite: isProd ? "none" : "lax", // ✅ cross-site in prod
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
-    },
+      secure: isProd,               
+      sameSite: isProd ? "none" : "lax",
+      maxAge: 1000 * 60 * 60 * 24
+    }
   })
 );
 
-// ✅ Passport init (MUST be after session)
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ✅ Cloudinary (if needed)
+app.use(express.urlencoded({ extended: true }));
+
+const PORT = process.env.PORT || 5000;
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ✅ Multer
 const storage = multer.diskStorage({});
 const upload = multer({ storage });
 
-// -----------------------------
-// ✅ Passport Local Strategy
-// -----------------------------
+
 passport.use(
   new LocalStrategy(
     { usernameField: "username", passwordField: "password" },
     async (username, password, done) => {
       try {
         let user = await UserRegistration.findOne({ username });
-        let role = "user";
-
         if (!user) {
           user = await StudentRegistration.findOne({ username });
-          role = "student";
         }
 
         if (!user) {
@@ -109,9 +95,6 @@ passport.use(
           return done(null, false, { message: "Invalid Password" });
         }
 
-        // attach role for serialize
-        user.__role = role;
-
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -120,13 +103,12 @@ passport.use(
   )
 );
 
-// ✅ Serialize only minimal info
+
 passport.serializeUser((user, done) => {
-  const role = user.__role || "user";
+  const role = user instanceof StudentRegistration ? "student" : "user";
   done(null, { id: user._id, role });
 });
 
-// ✅ Deserialize from DB
 passport.deserializeUser(async (data, done) => {
   try {
     let user;
@@ -141,23 +123,23 @@ passport.deserializeUser(async (data, done) => {
   }
 });
 
-// -----------------------------
-// ✅ Helpers
-// -----------------------------
-const ensureAuth = (req, res, next) => {
-  if (req.isAuthenticated && req.isAuthenticated()) return next();
-  return res.status(401).json({ success: false, message: "Not logged in" });
-};
 
-// -----------------------------
-// ✅ Routes
-// -----------------------------
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("MongoDB connected");
 
-app.get("/", (req, res) => {
-  res.json({ ok: true });
-});
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error("Mongo error:", err);
+  });
 
-// ✅ Services
+
+
+
 app.get("/services", async (req, res) => {
   try {
     const services = await Service.find();
@@ -167,15 +149,16 @@ app.get("/services", async (req, res) => {
   }
 });
 
-// ✅ Auth check
 app.get("/me", (req, res) => {
-  if (req.isAuthenticated && req.isAuthenticated()) {
-    return res.json({ authenticated: true, user: req.user });
+  if (req.isAuthenticated()) {
+    res.json({ authenticated: true, user: req.user });
+  } else {
+    console.log(req.user)
+    res.json({ authenticated: false });
   }
-  return res.json({ authenticated: false });
 });
 
-// ✅ Login
+
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
@@ -189,55 +172,16 @@ app.post("/login", (req, res, next) => {
 
     req.logIn(user, (err) => {
       if (err) return next(err);
-
-      // ✅ Send minimal user (optional)
-      return res.json({
+      res.json({
         success: true,
         message: "Login success",
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          name: user.name,
-        },
+        user,
       });
     });
   })(req, res, next);
 });
 
-// ✅ Logout
-app.get("/logout", (req, res, next) => {
-  req.logout((err) => {
-    if (err) return next(err);
 
-    req.session.destroy(() => {
-      res.clearCookie("zenvy.sid", {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "none" : "lax",
-      });
-      res.json({ success: true });
-    });
-  });
-});
-
-// ✅ Current logged user for Dashboard
-app.get("/current-user", ensureAuth, (req, res) => {
-  const user = req.user;
-
-  res.json({
-    success: true,
-    user: {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      fullname: user.name, // your frontend expects fullname
-      createdAt: user.createdAt || null,
-    },
-  });
-});
-
-// ✅ Register (other)
 app.post("/otherregister", async (req, res) => {
   try {
     req.body.password = await hashing(req.body.password);
@@ -249,7 +193,7 @@ app.post("/otherregister", async (req, res) => {
   }
 });
 
-// ✅ Register (student)
+
 app.post("/studentregister", async (req, res) => {
   try {
     req.body.password = await hashing(req.body.password);
@@ -261,7 +205,38 @@ app.post("/studentregister", async (req, res) => {
   }
 });
 
-// ✅ Feedback
+
+app.get("/logout", (req, res, next) => {
+  req.logout(err => {
+    if (err) return next(err);
+    req.session.destroy(() => {
+      res.clearCookie("zenvy.sid");
+      res.json({ success: true });
+    });
+  });
+});
+
+app.get("/current-user", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ success: false, message: "Not logged in" });
+  }
+
+  const user = req.user;
+
+  res.json({
+    success: true,
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      fullname:user.name,
+    },
+  });
+});
+
+
+
+
 app.post("/feedback", async (req, res) => {
   try {
     const feedback = new Feedback(req.body);
@@ -281,7 +256,7 @@ app.get("/feedback", async (req, res) => {
   }
 });
 
-// ✅ Mail (Brevo)
+
 app.post("/mail", async (req, res) => {
   try {
     const { name, email, message } = req.body;
@@ -303,7 +278,7 @@ app.post("/mail", async (req, res) => {
         name: "Zenvy Technologies",
         email: process.env.EMAIL_USER,
       },
-      to: [{ email: process.env.EMAIL_USER }],
+      to: [{ email: process.env.EMAIL_USER }], 
       replyTo: { email, name },
       subject: `New Contact Message from ${name}`,
       htmlContent: `
@@ -321,6 +296,7 @@ app.post("/mail", async (req, res) => {
       success: true,
       message: "Mail sent successfully",
     });
+
   } catch (err) {
     console.error("BREVO MAIL ERROR FULL:", err);
 
@@ -332,15 +308,14 @@ app.post("/mail", async (req, res) => {
   }
 });
 
-// ✅ Internships
-app.get("/internships", async (req, res) => {
-  try {
-    const data = await Internships.find();
+app.get('/internships',async (req, res) => {
+   try {
+    const data = await Internships.find();   
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+})
 
 app.get("/internships/:id", async (req, res) => {
   try {
@@ -351,14 +326,3 @@ app.get("/internships/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// -----------------------------
-// ✅ DB connect + Server start
-// -----------------------------
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log("MongoDB connected");
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch((err) => console.error("Mongo error:", err));
