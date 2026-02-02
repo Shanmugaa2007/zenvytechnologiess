@@ -150,6 +150,7 @@ app.get("/services", async (req, res) => {
 });
 
 app.get("/me", (req, res) => {
+  req.session.visited = true;
   if (req.isAuthenticated()) {
     res.json({ authenticated: true, user: req.user });
   } else {
