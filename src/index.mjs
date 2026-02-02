@@ -47,11 +47,11 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      httpOnly: true,
-      secure: true,        
-      sameSite: "none",
-      maxAge: 1000 * 60 * 60 * 24 
-    },
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", 
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 1000 * 60 * 60 * 24
+      },
     store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URI,
       collectionName: "sessions"
@@ -173,7 +173,6 @@ app.post("/login", (req, res, next) => {
 
     req.logIn(user, (err) => {
       if (err) return next(err);
-
       res.json({
         success: true,
         message: "Login success",
@@ -217,6 +216,7 @@ app.get("/logout", (req, res, next) => {
     });
   });
 });
+
 app.get("/current-user", (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ success: false, message: "Not logged in" });
@@ -234,6 +234,8 @@ app.get("/current-user", (req, res) => {
     },
   });
 });
+
+
 
 
 app.post("/feedback", async (req, res) => {
