@@ -3,7 +3,7 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import MongoStore from 'connect-mongo'
+import MongoStore from "connect-mongo";
 import { Service } from "./MongoDB Schema/service.mjs";
 import { UserRegistration } from "./MongoDB Schema/userRegistration.mjs";
 import { StudentRegistration } from "./MongoDB Schema/StudentRegistration.mjs";
@@ -17,19 +17,21 @@ import SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
+
 dotenv.config();
 
 const app = express();
 app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cors({
-  origin: ["http://localhost:5173","https://zenvytechnologies.vercel.app"],
+  origin: ["http://localhost:5173", "https://zenvytechnologies.vercel.app"],
   credentials: true,
 }));
 
-const isProd = process.env.NODE_ENV;
+const isProd = process.env.NODE_ENV === "production";
 
 app.use(session({
   name: "zenvy.sid",
@@ -42,8 +44,8 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     maxAge: 1000 * 60 * 60 * 24
   }
 }));
@@ -51,7 +53,6 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-/* ✅ ADDED SAFE USER FILTER */
 const getSafeUser = (user) => ({
   id: user._id,
   username: user.username,
@@ -78,10 +79,8 @@ passport.use(new LocalStrategy(
       let user = await UserRegistration.findOne({ username });
       if (!user) user = await StudentRegistration.findOne({ username });
       if (!user) return done(null, false, { message: "You Don't have an account Please register!" });
-
       const isMatch = await comparepassword(password, user.password);
       if (!isMatch) return done(null, false, { message: "Invalid Password" });
-
       return done(null, user);
     } catch (err) {
       return done(err);
@@ -115,9 +114,6 @@ mongoose.connect(process.env.MONGODB_URI)
   })
   .catch(err => console.error("Mongo error:", err));
 
-
-/* ---------------- ROUTES ---------------- */
-
 app.get("/services", async (req, res) => {
   try {
     const services = await Service.find();
@@ -127,7 +123,6 @@ app.get("/services", async (req, res) => {
   }
 });
 
-/* ✅ FIXED /me */
 app.get("/me", (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ authenticated: false });
@@ -135,15 +130,13 @@ app.get("/me", (req, res) => {
   res.json({ authenticated: true, user: getSafeUser(req.user) });
 });
 
-/* ✅ FIXED LOGIN */
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
-    if (!user) return res.status(401).json({ success:false,message:info?.message });
-
+    if (!user) return res.status(401).json({ success: false, message: info?.message });
     req.logIn(user, (err) => {
       if (err) return next(err);
-      res.json({ success:true,message:"Login success",user:getSafeUser(user) });
+      res.json({ success: true, message: "Login success", user: getSafeUser(user) });
     });
   })(req, res, next);
 });
@@ -180,16 +173,12 @@ app.get("/logout", (req, res, next) => {
   });
 });
 
-/* ✅ FIXED CURRENT USER */
 app.get("/current-user", (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ success: false, message: "Not logged in" });
   }
   res.json({ success: true, user: getSafeUser(req.user) });
 });
-
-
-/* -------- YOUR ORIGINAL ROUTES CONTINUE -------- */
 
 app.post("/feedback", async (req, res) => {
   try {
@@ -210,7 +199,7 @@ app.get("/feedback", async (req, res) => {
   }
 });
 
-app.get('/internships', async (req, res) => {
+app.get("/internships", async (req, res) => {
   try {
     const data = await Internships.find();
     res.json(data);
@@ -228,3 +217,4 @@ app.get("/internships/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
