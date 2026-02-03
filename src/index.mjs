@@ -3,7 +3,7 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import MongoStore from "connect-mongo";
+import MongoStore from 'connect-mongo'
 import { Service } from "./MongoDB Schema/service.mjs";
 import { UserRegistration } from "./MongoDB Schema/userRegistration.mjs";
 import { StudentRegistration } from "./MongoDB Schema/StudentRegistration.mjs";
@@ -17,52 +17,53 @@ import SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
-
 dotenv.config();
 
+
 const app = express();
+
 app.set("trust proxy", 1);
 
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-  origin: ["http://localhost:5173", "https://zenvytechnologies.vercel.app"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://zenvytechnologies.vercel.app"
+    ],
+    credentials: true,
+  })
+);
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd = process.env.NODE_ENV;
 
-app.use(session({
-  name: "zenvy.sid",
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
-    collectionName: "sessions"
-  }),
-  cookie: {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax",
-    maxAge: 1000 * 60 * 60 * 24
-  }
-}));
+app.use(
+  session({
+    name: "zenvy.sid",
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      collectionName: "sessions"
+    }),
+    cookie: {
+      httpOnly: true,
+      secure: isProd,               
+      sameSite: isProd ? "none" : "lax",
+      maxAge: 1000 * 60 * 60 * 24
+    }
+  })
+);
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-const getSafeUser = (user) => ({
-  id: user._id,
-  username: user.username,
-  email: user.email,
-  fullname: user.name,
-  role: user instanceof StudentRegistration ? "student" : "user"
-});
+app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 5000;
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -72,21 +73,36 @@ cloudinary.config({
 const storage = multer.diskStorage({});
 const upload = multer({ storage });
 
-passport.use(new LocalStrategy(
-  { usernameField: "username", passwordField: "password" },
-  async (username, password, done) => {
-    try {
-      let user = await UserRegistration.findOne({ username });
-      if (!user) user = await StudentRegistration.findOne({ username });
-      if (!user) return done(null, false, { message: "You Don't have an account Please register!" });
-      const isMatch = await comparepassword(password, user.password);
-      if (!isMatch) return done(null, false, { message: "Invalid Password" });
-      return done(null, user);
-    } catch (err) {
-      return done(err);
+
+passport.use(
+  new LocalStrategy(
+    { usernameField: "username", passwordField: "password" },
+    async (username, password, done) => {
+      try {
+        let user = await UserRegistration.findOne({ username });
+        if (!user) {
+          user = await StudentRegistration.findOne({ username });
+        }
+
+        if (!user) {
+          return done(null, false, {
+            message: "You Don't have an account Please register!",
+          });
+        }
+
+        const isMatch = await comparepassword(password, user.password);
+        if (!isMatch) {
+          return done(null, false, { message: "Invalid Password" });
+        }
+
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
     }
-  }
-));
+  )
+);
+
 
 passport.serializeUser((user, done) => {
   const role = user instanceof StudentRegistration ? "student" : "user";
@@ -107,12 +123,22 @@ passport.deserializeUser(async (data, done) => {
   }
 });
 
-mongoose.connect(process.env.MONGODB_URI)
+
+mongoose
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("MongoDB connected");
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   })
-  .catch(err => console.error("Mongo error:", err));
+  .catch(err => {
+    console.error("Mongo error:", err);
+  });
+
+
+
 
 app.get("/services", async (req, res) => {
   try {
@@ -124,22 +150,37 @@ app.get("/services", async (req, res) => {
 });
 
 app.get("/me", (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ authenticated: false });
+  if (req.isAuthenticated()) {
+    res.json({ authenticated: true, user: req.user });
+  } else {
+    console.log(req.user)
+    res.json({ authenticated: false });
   }
-  res.json({ authenticated: true, user: getSafeUser(req.user) });
 });
+
 
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
-    if (!user) return res.status(401).json({ success: false, message: info?.message });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: info?.message || "Login failed",
+      });
+    }
+
     req.logIn(user, (err) => {
       if (err) return next(err);
-      res.json({ success: true, message: "Login success", user: getSafeUser(user) });
+      res.json({
+        success: true,
+        message: "Login success",
+        user,
+      });
     });
   })(req, res, next);
 });
+
 
 app.post("/otherregister", async (req, res) => {
   try {
@@ -152,6 +193,7 @@ app.post("/otherregister", async (req, res) => {
   }
 });
 
+
 app.post("/studentregister", async (req, res) => {
   try {
     req.body.password = await hashing(req.body.password);
@@ -162,6 +204,7 @@ app.post("/studentregister", async (req, res) => {
     res.status(400).send(`Error: ${e.message}`);
   }
 });
+
 
 app.get("/logout", (req, res, next) => {
   req.logout(err => {
@@ -177,8 +220,22 @@ app.get("/current-user", (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ success: false, message: "Not logged in" });
   }
-  res.json({ success: true, user: getSafeUser(req.user) });
+
+  const user = req.user;
+
+  res.json({
+    success: true,
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      fullname:user.name,
+    },
+  });
 });
+
+
+
 
 app.post("/feedback", async (req, res) => {
   try {
@@ -199,14 +256,66 @@ app.get("/feedback", async (req, res) => {
   }
 });
 
-app.get("/internships", async (req, res) => {
+
+app.post("/mail", async (req, res) => {
   try {
-    const data = await Internships.find();
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const client = SibApiV3Sdk.ApiClient.instance;
+    client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
+
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    const sendSmtpEmail = {
+      sender: {
+        name: "Zenvy Technologies",
+        email: process.env.EMAIL_USER,
+      },
+      to: [{ email: process.env.EMAIL_USER }], 
+      replyTo: { email, name },
+      subject: `New Contact Message from ${name}`,
+      htmlContent: `
+        <h3>New Contact Message</h3>
+        <p><b>Name:</b> ${name}</p>
+        <p><b>Email:</b> ${email}</p>
+        <p><b>Message:</b></p>
+        <p>${message}</p>
+      `,
+    };
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+
+    res.status(200).json({
+      success: true,
+      message: "Mail sent successfully",
+    });
+
+  } catch (err) {
+    console.error("BREVO MAIL ERROR FULL:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Mail sending failed",
+      error: err.message,
+    });
+  }
+});
+
+app.get('/internships',async (req, res) => {
+   try {
+    const data = await Internships.find();   
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+})
 
 app.get("/internships/:id", async (req, res) => {
   try {
@@ -217,5 +326,3 @@ app.get("/internships/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-
