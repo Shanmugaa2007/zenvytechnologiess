@@ -37,7 +37,7 @@ app.use(
   })
 );
 
-const isProd = process.env.NODE_ENV;
+const isProd = process.env.NODE_ENV === "production";
 
 app.use(
   session({
@@ -50,11 +50,11 @@ app.use(
       collectionName: "sessions"
     }),
     cookie: {
-      httpOnly: true,
-      secure: isProd,               
-      sameSite: isProd ? "none" : "lax",
-      maxAge: 1000 * 60 * 60 * 24
-    }
+        httpOnly: true,
+        secure: isProd,          
+        sameSite: isProd ? "none" : "lax",
+        maxAge: 1000 * 60 * 60 * 24
+      }
   })
 );
 
