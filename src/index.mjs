@@ -19,11 +19,9 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 dotenv.config();
 
-
 const app = express();
 
 app.set("trust proxy", 1);
-
 
 app.use(express.json());
 
@@ -37,7 +35,7 @@ app.use(
   })
 );
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd = true;
 
 app.use(
   session({
@@ -51,8 +49,8 @@ app.use(
     }),
     cookie: {
         httpOnly: true,
-        secure: isProd,          
-        sameSite: isProd ? "none" : "lax",
+        secure: true,
+        sameSite: "none",
         maxAge: 1000 * 60 * 60 * 24
       }
   })
@@ -72,7 +70,6 @@ cloudinary.config({
 
 const storage = multer.diskStorage({});
 const upload = multer({ storage });
-
 
 passport.use(
   new LocalStrategy(
@@ -103,7 +100,6 @@ passport.use(
   )
 );
 
-
 passport.serializeUser((user, done) => {
   const role = user instanceof StudentRegistration ? "student" : "user";
   done(null, { id: user._id, role });
@@ -123,7 +119,6 @@ passport.deserializeUser(async (data, done) => {
   }
 });
 
-
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
@@ -136,9 +131,6 @@ mongoose
   .catch(err => {
     console.error("Mongo error:", err);
   });
-
-
-
 
 app.get("/services", async (req, res) => {
   try {
@@ -153,11 +145,9 @@ app.get("/me", (req, res) => {
   if (req.isAuthenticated()) {
     res.json({ authenticated: true, user: req.user });
   } else {
-    console.log(req.user)
     res.json({ authenticated: false });
   }
 });
-
 
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
@@ -181,7 +171,6 @@ app.post("/login", (req, res, next) => {
   })(req, res, next);
 });
 
-
 app.post("/otherregister", async (req, res) => {
   try {
     req.body.password = await hashing(req.body.password);
@@ -192,7 +181,6 @@ app.post("/otherregister", async (req, res) => {
     res.status(400).send(`Error : ${e.message}`);
   }
 });
-
 
 app.post("/studentregister", async (req, res) => {
   try {
@@ -205,12 +193,11 @@ app.post("/studentregister", async (req, res) => {
   }
 });
 
-
 app.get("/logout", (req, res, next) => {
   req.logout(err => {
     if (err) return next(err);
     req.session.destroy(() => {
-      res.clearCookie("zenvy.sid");
+      res.clearCookie("zenvy.sid", { path: "/", sameSite: "none", secure: true });
       res.json({ success: true });
     });
   });
@@ -234,9 +221,6 @@ app.get("/current-user", (req, res) => {
   });
 });
 
-
-
-
 app.post("/feedback", async (req, res) => {
   try {
     const feedback = new Feedback(req.body);
@@ -255,7 +239,6 @@ app.get("/feedback", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch feedback" });
   }
 });
-
 
 app.post("/mail", async (req, res) => {
   try {
@@ -278,7 +261,7 @@ app.post("/mail", async (req, res) => {
         name: "Zenvy Technologies",
         email: process.env.EMAIL_USER,
       },
-      to: [{ email: process.env.EMAIL_USER }], 
+      to: [{ email: process.env.EMAIL_USER }],
       replyTo: { email, name },
       subject: `New Contact Message from ${name}`,
       htmlContent: `
