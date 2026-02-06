@@ -162,11 +162,8 @@ app.post("/login", (req, res, next) => {
 
     req.logIn(user, (err) => {
       if (err) return next(err);
-      res.json({
-        success: true,
-        message: "Login success",
-        user,
-      });
+      const { password, ...safeUser } = user._doc;
+      res.json({ success: true, message: "Login success", user: safeUser });
     });
   })(req, res, next);
 });
@@ -200,24 +197,6 @@ app.get("/logout", (req, res, next) => {
       res.clearCookie("zenvy.sid", { path: "/", sameSite: "none", secure: true });
       res.json({ success: true });
     });
-  });
-});
-
-app.get("/current-user", (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ success: false, message: "Not logged in" });
-  }
-
-  const user = req.user;
-
-  res.json({
-    success: true,
-    user: {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      fullname:user.name,
-    },
   });
 });
 
