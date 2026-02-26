@@ -1,0 +1,11 @@
+!/.gitignore
+!/.gitattributes
+node_modules/
+.env
+.cache/
+*.zip
+node_modules/
+src/node_modules/
+.env
+src/.env
+.cache/
