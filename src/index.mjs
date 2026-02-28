@@ -278,3 +278,40 @@ app.get("/internships/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post("/feedback", async (req, res) => {
+  try {
+    const { name, rating, message } = req.body;
+
+    if (!name || !rating || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
+
+    const newFeedback = new Feedback({
+      name,
+      rating,   
+      message
+    });
+
+    await newFeedback.save();
+
+    res.status(201).json(newFeedback);
+
+  } catch (err) {
+    console.error("Feedback POST Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/feedback", async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find().sort({ _id: -1 });
+    res.json(feedbacks);
+  } catch (err) {
+    console.error("Feedback GET Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
