@@ -143,14 +143,14 @@ app.get("/services", async (req, res) => {
 
 app.get("/me", (req, res) => {
   if (req.isAuthenticated()) {
-    res.json({
+    return res.json({
       authenticated: true,
-      user: req.user
+      user: req.user,
     });
   } else {
-    res.json({
+    return res.json({
       authenticated: false,
-      user: null
+      user: null,
     });
   }
 });
@@ -200,12 +200,23 @@ app.post("/studentregister", async (req, res) => {
   }
 });
 
-app.get("/logout", (req, res, next) => {
-  req.logout(err => {
+app.post("/logout", (req, res, next) => {
+  req.logout(function (err) {
     if (err) return next(err);
-    req.session.destroy(() => {
-      res.clearCookie("zenvy.sid", { path: "/", sameSite: "none", secure: true });
-      res.json({ success: true });
+
+    req.session.destroy((err) => {
+      if (err) return next(err);
+
+      res.clearCookie("zenvy.sid", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Logged out successfully",
+      });
     });
   });
 });
