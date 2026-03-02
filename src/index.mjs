@@ -148,7 +148,10 @@ app.get("/me", (req, res) => {
       user: req.user
     });
   } else {
-    return res.json({ authenticated: true, user: req.user });
+    res.json({
+      authenticated: false,
+      user: null
+    });
   }
 });
 
