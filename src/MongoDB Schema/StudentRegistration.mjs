@@ -39,10 +39,16 @@ const StudentRegistrationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.String,
         required: true
     },
-  createdAt: {
-    type: Date,
-    default: Date.now   
-  }
+    purchasedInternships:[
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Internships"
+        }
+    ],
+    createdAt: {
+        type: Date,
+        default: Date.now   
+    }
 
 })
 

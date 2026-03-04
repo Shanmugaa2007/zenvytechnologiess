@@ -30,7 +30,13 @@ const UserRegistrationSchema = new mongoose.Schema({
     Organization:{
         type: mongoose.Schema.Types.String
     },
-  createdAt: {
+    purchasedInternships:[
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Internships"
+        }
+    ],
+    createdAt: {
     type: Date,
     default: Date.now   
   }
