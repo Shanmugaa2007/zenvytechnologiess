@@ -3,7 +3,7 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import MongoStore from 'connect-mongo'
+import MongoStore from "connect-mongo";
 import { Service } from "./MongoDB Schema/service.mjs";
 import { UserRegistration } from "./MongoDB Schema/userRegistration.mjs";
 import { StudentRegistration } from "./MongoDB Schema/StudentRegistration.mjs";
@@ -17,6 +17,9 @@ import SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
+import Razorpay from "razorpay";
+import crypto from "crypto";
+
 dotenv.config();
 
 const app = express();
@@ -31,7 +34,7 @@ app.use(
       "http://localhost:5173",
       "https://zenvytechnologies.vercel.app"
     ],
-    credentials: true,
+    credentials: true
   })
 );
 
@@ -48,11 +51,11 @@ app.use(
       collectionName: "sessions"
     }),
     cookie: {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 1000 * 60 * 60 * 24
-      }
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 1000 * 60 * 60 * 24
+    }
   })
 );
 
@@ -62,10 +65,11 @@ app.use(passport.session());
 app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 5000;
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 const storage = multer.diskStorage({});
@@ -80,18 +84,15 @@ passport.use(
         if (!user) {
           user = await StudentRegistration.findOne({ username });
         }
-
         if (!user) {
           return done(null, false, {
-            message: "You Don't have an account Please register!",
+            message: "You Don't have an account Please register!"
           });
         }
-
         const isMatch = await comparepassword(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "Invalid Password" });
         }
-
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -123,7 +124,6 @@ mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("MongoDB connected");
-
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
@@ -145,12 +145,12 @@ app.get("/me", (req, res) => {
   if (req.isAuthenticated()) {
     return res.json({
       authenticated: true,
-      user: req.user,
+      user: req.user
     });
   } else {
     return res.json({
       authenticated: false,
-      user: null,
+      user: null
     });
   }
 });
@@ -158,17 +158,14 @@ app.get("/me", (req, res) => {
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
-
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: info?.message || "Login failed",
+        message: info?.message || "Login failed"
       });
     }
-
     req.logIn(user, (err) => {
       if (err) return next(err);
-
       return res.json({
         success: true,
         message: "Login success",
@@ -203,46 +200,37 @@ app.post("/studentregister", async (req, res) => {
 app.post("/logout", (req, res, next) => {
   req.logout(function (err) {
     if (err) return next(err);
-
     req.session.destroy((err) => {
       if (err) return next(err);
-
       res.clearCookie("zenvy.sid", {
         httpOnly: true,
         secure: true,
-        sameSite: "none",
+        sameSite: "none"
       });
-
       return res.status(200).json({
         success: true,
-        message: "Logged out successfully",
+        message: "Logged out successfully"
       });
     });
   });
 });
 
-
-
 app.post("/mail", async (req, res) => {
   try {
     const { name, email, message } = req.body;
-
     if (!name || !email || !message) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message: "All fields are required"
       });
     }
-
     const client = SibApiV3Sdk.ApiClient.instance;
     client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
-
     const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-
     const sendSmtpEmail = {
       sender: {
         name: "Zenvy Technologies",
-        email: process.env.EMAIL_USER,
+        email: process.env.EMAIL_USER
       },
       to: [{ email: process.env.EMAIL_USER }],
       replyTo: { email, name },
@@ -253,35 +241,31 @@ app.post("/mail", async (req, res) => {
         <p><b>Email:</b> ${email}</p>
         <p><b>Message:</b></p>
         <p>${message}</p>
-      `,
+      `
     };
-
     await apiInstance.sendTransacEmail(sendSmtpEmail);
-
     res.status(200).json({
       success: true,
-      message: "Mail sent successfully",
+      message: "Mail sent successfully"
     });
-
   } catch (err) {
     console.error("BREVO MAIL ERROR FULL:", err);
-
     res.status(500).json({
       success: false,
       message: "Mail sending failed",
-      error: err.message,
+      error: err.message
     });
   }
 });
 
-app.get('/internships',async (req, res) => {
-   try {
-    const data = await Internships.find();   
+app.get("/internships", async (req, res) => {
+  try {
+    const data = await Internships.find();
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-})
+});
 
 app.get("/internships/:id", async (req, res) => {
   try {
@@ -296,24 +280,19 @@ app.get("/internships/:id", async (req, res) => {
 app.post("/feedback", async (req, res) => {
   try {
     const { name, rating, message } = req.body;
-
     if (!name || !rating || !message) {
       return res.status(400).json({
         success: false,
         message: "All fields are required"
       });
     }
-
     const newFeedback = new Feedback({
       name,
-      rating,   
+      rating,
       message
     });
-
     await newFeedback.save();
-
     res.status(201).json(newFeedback);
-
   } catch (err) {
     console.error("Feedback POST Error:", err);
     res.status(500).json({ message: "Server error" });
@@ -327,5 +306,54 @@ app.get("/feedback", async (req, res) => {
   } catch (err) {
     console.error("Feedback GET Error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+
+app.post("/create-order", async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const options = {
+      amount: amount * 100,
+      currency: "INR",
+      receipt: "receipt_" + Date.now()
+    };
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({
+      message: "Order creation failed"
+    });
+  }
+});
+
+app.post("/verify-payment", async (req, res) => {
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature
+  } = req.body;
+
+  const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(body.toString())
+    .digest("hex");
+
+  if (expectedSignature === razorpay_signature) {
+    res.json({
+      success: true,
+      message: "Payment verified"
+    });
+  } else {
+    res.status(400).json({
+      success: false,
+      message: "Invalid signature"
+    });
   }
 });
