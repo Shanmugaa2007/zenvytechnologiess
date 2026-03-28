@@ -38,7 +38,7 @@ app.use(
   })
 );
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd = process.env.NODE_ENV;
 
 app.use(
   session({
@@ -78,7 +78,10 @@ const upload = multer({ storage });
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
-    app.listen(PORT, () => {});
+    app.listen(PORT, () => {
+      console.log(`The Server is running in port ${PORT}`)
+    });
+    console.log("MongoDB Connected")
   })
   .catch(() => {});
 
