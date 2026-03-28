@@ -166,7 +166,7 @@ app.get("/me", (req, res) => {
 
     res.json({
       authenticated: true,
-      user: decoded
+      user: user
     });
 
   } catch (err) {
