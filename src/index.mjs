@@ -120,16 +120,6 @@ const upload = multer({ storage });
 //   }
 // });
 
-function isAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  return res.status(401).json({
-    success: false,
-    message: "Login required"
-  });
-}
-
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
@@ -151,7 +141,7 @@ app.get("/services", async (req, res) => {
   }
 });
 
-app.get("/me", (req, res) => {
+app.get("/me", async (req, res) => {
   const token = req.cookies.token;
 
   try {
@@ -163,6 +153,19 @@ app.get("/me", (req, res) => {
     }
 
     const decoded = jwt.verify(token, "This is My Secret");
+
+    let user = await StudentRegistration.findById(decoded.id);
+
+    if (!user) {
+      user = await UserRegistration.findById(decoded.id);
+    }
+
+    if (!user) {
+      return res.json({
+        authenticated: false,
+        user: null
+      });
+    }
 
     res.json({
       authenticated: true,
@@ -176,7 +179,6 @@ app.get("/me", (req, res) => {
     });
   }
 });
-
 app.post("/login",async(req,res)=>{
   
   const { username,password } = req.body;
