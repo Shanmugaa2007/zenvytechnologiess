@@ -1,5 +1,3 @@
-//"kunb oqll qgpo nnkh"
-
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
@@ -12,13 +10,14 @@ import { Internships } from "./MongoDB Schema/internship.mjs";
 import { hashing, comparepassword } from "./hashpassword/passwordhashing.mjs";
 import session from "express-session";
 import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
 import SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -27,6 +26,7 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use(
   cors({
@@ -75,50 +75,60 @@ cloudinary.config({
 const storage = multer.diskStorage({});
 const upload = multer({ storage });
 
-passport.use(
-  new LocalStrategy(
-    { usernameField: "username", passwordField: "password" },
-    async (username, password, done) => {
-      try {
-        let user = await UserRegistration.findOne({ username });
-        if (!user) {
-          user = await StudentRegistration.findOne({ username });
-        }
-        if (!user) {
-          return done(null, false, {
-            message: "You Don't have an account Please register!"
-          });
-        }
-        const isMatch = await comparepassword(password, user.password);
-        if (!isMatch) {
-          return done(null, false, { message: "Invalid Password" });
-        }
-        return done(null, user);
-      } catch (err) {
-        return done(err);
-      }
-    }
-  )
-);
+// passport.use(
+//   new LocalStrategy(
+//     { usernameField: "username", passwordField: "password" },
+//     async (username, password, done) => {
+//       try {
+//         let user = await UserRegistration.findOne({ username });
+//         if (!user) {
+//           user = await StudentRegistration.findOne({ username });
+//         }
+//         if (!user) {
+//           return done(null, false, {
+//             message: "You Don't have an account Please register!"
+//           });
+//         }
+//         const isMatch = await comparepassword(password, user.password);
+//         if (!isMatch) {
+//           return done(null, false, { message: "Invalid Password" });
+//         }
+//         return done(null, user);
+//       } catch (err) {
+//         return done(err);
+//       }
+//     }
+//   )
+// );
 
-passport.serializeUser((user, done) => {
-  const role = user instanceof StudentRegistration ? "student" : "user";
-  done(null, { id: user._id, role });
-});
+// passport.serializeUser((user, done) => {
+//   const role = user instanceof StudentRegistration ? "student" : "user";
+//   done(null, { id: user._id, role });
+// });
 
-passport.deserializeUser(async (data, done) => {
-  try {
-    let user;
-    if (data.role === "student") {
-      user = await StudentRegistration.findById(data.id);
-    } else {
-      user = await UserRegistration.findById(data.id);
-    }
-    done(null, user);
-  } catch (err) {
-    done(err);
+// passport.deserializeUser(async (data, done) => {
+//   try {
+//     let user;
+//     if (data.role === "student") {
+//       user = await StudentRegistration.findById(data.id);
+//     } else {
+//       user = await UserRegistration.findById(data.id);
+//     }
+//     done(null, user);
+//   } catch (err) {
+//     done(err);
+//   }
+// });
+
+function isAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
   }
-});
+  return res.status(401).json({
+    success: false,
+    message: "Login required"
+  });
+}
 
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -155,25 +165,56 @@ app.get("/me", (req, res) => {
   }
 });
 
-app.post("/login", (req, res, next) => {
-  passport.authenticate("local", (err, user, info) => {
-    if (err) return next(err);
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: info?.message || "Login failed"
-      });
-    }
-    req.logIn(user, (err) => {
-      if (err) return next(err);
-      return res.json({
-        success: true,
-        message: "Login success",
-        user: user
-      });
-    });
-  })(req, res, next);
-});
+app.post("/login",async(req,res)=>{
+  
+  const { username,password } = req.body;
+  try{
+   let user = await UserRegistration.findOne({username});
+    if(!user)
+      user = await StudentRegistration.findOne({username});
+    if(!user)
+      return res.status(401).json("User not have an account.please register!")
+    let ismatch = comparepassword(password,user.password)
+    if(!ismatch)
+      return res.status(401).json("Invalid Password")
+    const token = jwt.sign({id:user._id},"This is My Secret",{expiresIn:"24hrs"})
+    res.cookie("token",token,{httpOnly:true})
+    res.json("Login successfull")
+  }catch(e){
+    res.json(e.message)
+  }
+})
+
+const loginmiddleware = (req,res,next)=>{
+
+  const token = req.cookies.token;
+  try{
+    if(!token)
+      return res.status(401).json("User Not Logged in");
+    const decode = jwt.verify(token,"This is MySecret");
+    req.user = decode;
+    next();
+  }
+  catch(e){
+    return res.status(401).json("Invalid Token")
+  }
+}
+
+app.get("/profile",loginmiddleware,async(req,res)=>{
+
+  try{
+    const user = await StudentRegistration.findById(req.user.id)
+    if(!user)
+     return user = await UserRegistration.findById(req.user.id)
+    if(!user)
+      return res.status(401).json("Unauthorized User")
+    res.json(user)
+  }
+  catch(e){
+    res.json(e.message)
+  }
+})
+
 
 app.post("/otherregister", async (req, res) => {
   try {
@@ -314,7 +355,7 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-app.post("/create-order", async (req, res) => {
+app.post("/create-order", isAuthenticated, async (req, res) => {
   try {
     const { amount } = req.body;
     const options = {
@@ -331,11 +372,12 @@ app.post("/create-order", async (req, res) => {
   }
 });
 
-app.post("/verify-payment", async (req, res) => {
+app.post("/verify-payment", isAuthenticated, async (req, res) => {
   const {
     razorpay_order_id,
     razorpay_payment_id,
-    razorpay_signature
+    razorpay_signature,
+    internshipId
   } = req.body;
 
   const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -346,6 +388,13 @@ app.post("/verify-payment", async (req, res) => {
     .digest("hex");
 
   if (expectedSignature === razorpay_signature) {
+    await StudentRegistration.findByIdAndUpdate(
+      req.user._id,
+      {
+        $addToSet: { purchasedInternships: internshipId }
+      }
+    );
+
     res.json({
       success: true,
       message: "Payment verified"
@@ -356,4 +405,30 @@ app.post("/verify-payment", async (req, res) => {
       message: "Invalid signature"
     });
   }
+});
+
+app.get("/my-internships", isAuthenticated, async (req, res) => {
+  const student = await StudentRegistration
+    .findById(req.user._id)
+    .populate("purchasedInternships");
+
+  res.json({
+    success: true,
+    internships: student?.purchasedInternships || []
+  });
+});
+
+app.get("/has-purchased/:internshipId", isAuthenticated, async (req, res) => {
+  const { internshipId } = req.params;
+
+  const student = await StudentRegistration.findById(req.user._id).select("purchasedInternships");
+
+  const purchased = (student?.purchasedInternships || []).some(
+    (id) => id.toString() === internshipId
+  );
+
+  res.json({
+    success: true,
+    purchased
+  });
 });
