@@ -179,9 +179,15 @@ app.post("/login",async(req,res)=>{
       return res.status(401).json("Invalid Password")
     const token = jwt.sign({id:user._id},"This is My Secret",{expiresIn:"24hrs"})
     res.cookie("token",token,{httpOnly:true})
-    res.json("Login successfull")
+    res.json({
+      success:true,
+      message:"Login sucessfull"
+    })
   }catch(e){
-    res.json(e.message)
+    res.json({
+      success:false,
+      message:"Login faild"
+    })
   }
 })
 
