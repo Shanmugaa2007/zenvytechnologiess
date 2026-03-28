@@ -152,12 +152,24 @@ app.get("/services", async (req, res) => {
 });
 
 app.get("/me", (req, res) => {
-  if (req.isAuthenticated()) {
-    return res.json({
+  const token = req.cookies.token;
+
+  try {
+    if (!token) {
+      return res.json({
+        authenticated: false,
+        user: null
+      });
+    }
+
+    const decoded = jwt.verify(token, "This is My Secret");
+
+    res.json({
       authenticated: true,
-      user: req.user
+      user: decoded
     });
-  } else {
+
+  } catch (err) {
     return res.json({
       authenticated: false,
       user: null
@@ -174,11 +186,15 @@ app.post("/login",async(req,res)=>{
       user = await StudentRegistration.findOne({username});
     if(!user)
       return res.status(401).json("User not have an account.please register!")
-    let ismatch = comparepassword(password,user.password)
+    let ismatch = await comparepassword(password,user.password)
     if(!ismatch)
       return res.status(401).json("Invalid Password")
     const token = jwt.sign({id:user._id},"This is My Secret",{expiresIn:"24hrs"})
-    res.cookie("token",token,{httpOnly:true})
+    res.cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none"
+        });
     res.json({
       success:true,
       message:"Login sucessfull"
@@ -197,7 +213,7 @@ const loginmiddleware = (req,res,next)=>{
   try{
     if(!token)
       return res.status(401).json("User Not Logged in");
-    const decode = jwt.verify(token,"This is MySecret");
+    const decode = jwt.verify(token,"This is My Secret");
     req.user = decode;
     next();
   }
