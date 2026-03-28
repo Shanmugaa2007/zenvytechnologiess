@@ -244,22 +244,10 @@ app.post("/studentregister", async (req, res) => {
   }
 });
 
-app.post("/logout", (req, res, next) => {
-  req.logout(function (err) {
-    if (err) return next(err);
-    req.session.destroy((err) => {
-      if (err) return next(err);
-      res.clearCookie("zenvy.sid", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none"
-      });
-      return res.status(200).json({
-        success: true,
-        message: "Logged out successfully"
-      });
-    });
-  });
+app.post("/logout", (req, res) => {
+
+  res.clearCookie("token");
+  res.json("User Logout");
 });
 
 app.post("/mail", async (req, res) => {
