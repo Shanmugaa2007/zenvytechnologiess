@@ -190,6 +190,8 @@ app.post("/otherregister", async (req, res) => {
     req.body.password = await hashing(req.body.password);
     const registers = new UserRegistration(req.body);
     await registers.save();
+    sendEmail(req.body.email, "Welcome!");
+    res.send("User created");
     res.status(201).send({ message: "User saved successfully" });
   } catch (e) {
     res.status(400).send({ message: e.message });
@@ -201,6 +203,8 @@ app.post("/studentregister", async (req, res) => {
     req.body.password = await hashing(req.body.password);
     const student = new StudentRegistration(req.body);
     await student.save();
+    sendEmail(req.body.email, "Welcome!");
+    res.send("User created");
     res.status(201).send("Student registered successfully");
   } catch (e) {
     res.status(400).send({ message: e.message });
