@@ -11,6 +11,7 @@ import { hashing, comparepassword } from "./hashpassword/passwordhashing.mjs";
 import session from "express-session";
 import passport from "passport";
 import SibApiV3Sdk from "sib-api-v3-sdk";
+import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
@@ -58,6 +59,28 @@ app.use(
     }
   })
 );
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+const sendWelcomeEmail = async (email, name) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Welcome to Our Platform 🚀",
+    html: `
+      <h2>Hello ${name},</h2>
+      <p>Your account has been successfully created.</p>
+      <p>Start using our platform now!</p>
+    `
+  });
+};
+
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -190,8 +213,7 @@ app.post("/otherregister", async (req, res) => {
     req.body.password = await hashing(req.body.password);
     const registers = new UserRegistration(req.body);
     await registers.save();
-    sendEmail(req.body.email, "Welcome!");
-    res.send("User created");
+    await sendWelcomeEmail(email, name);
     res.status(201).send({ message: "User saved successfully" });
   } catch (e) {
     res.status(400).send({ message: e.message });
@@ -203,8 +225,7 @@ app.post("/studentregister", async (req, res) => {
     req.body.password = await hashing(req.body.password);
     const student = new StudentRegistration(req.body);
     await student.save();
-    sendEmail(req.body.email, "Welcome!");
-    res.send("User created");
+    await sendWelcomeEmail(email, name);
     res.status(201).send("Student registered successfully");
   } catch (e) {
     res.status(400).send({ message: e.message });
