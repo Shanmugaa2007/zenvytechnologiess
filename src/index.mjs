@@ -6,11 +6,14 @@ import { Service } from "./MongoDB Schema/service.mjs";
 import { Feedback } from "./MongoDB Schema/feedback.mjs";
 import { hashing, comparepassword } from "./hashpassword/passwordhashing.mjs";
 import session from "express-session";
+import SibApiV3Sdk from "sib-api-v3-sdk";
+import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import ServiceRouter from "./routes/servicerouter.mjs"
 import MailRouter from "./routes/sendmailroute.mjs";
 import FeedbackRouter from "./routes/feedbackrouter.mjs"
+import Consultation from "./routes/consultation.mjs"
 
 dotenv.config();
 
@@ -33,7 +36,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(ServiceRouter);
 app.use(MailRouter);
-app.use(FeedbackRouter)
+app.use(FeedbackRouter);
+app.use(Consultation)
 
 const isProd = process.env.NODE_ENV;
 
